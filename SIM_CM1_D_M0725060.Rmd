@@ -1,0 +1,185 @@
+---
+title: "SIM_CM1_D_M0725060"
+author: "Amanda Rizky"
+date: "2026-05-23"
+output: html_document
+---
+
+
+<style>
+
+body{
+  font-family: 'Poppins', sans-serif;
+  background: #fafafa;
+  color: #2d3436;
+  margin: 20px;
+}
+
+h1{
+  text-align: center;
+  color: #6c5ce7;
+  font-size: 34px;
+}
+
+h2{
+  background: #6c5ce7;
+  color: white;
+  padding: 10px;
+  border-radius: 10px;
+  margin-top: 30px;
+}
+
+p{
+  text-align: justify;
+}
+
+pre{
+  background: #2d3436 !important;
+  color: white !important;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+code{
+  background: #f1f2f6;
+  color: #e84393;
+  padding: 2px 5px;
+  border-radius: 5px;
+}
+
+table{
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+th{
+  background: #6c5ce7;
+  color: white;
+  padding: 10px;
+}
+
+td{
+  padding: 8px;
+  border-bottom: 1px solid #ddd;
+}
+
+img{
+  display: block;
+  margin: auto;
+  border-radius: 12px;
+}
+
+.MathJax{
+  font-size: 110% !important;
+}
+
+</style>
+
+
+## Mengkoneksikan MySQL ke R Studio
+```{r}
+library(DBI)
+library(odbc)
+odbcListDrivers()
+library(DBI)
+
+
+con2 = DBI::dbConnect(odbc(),
+                      
+                      Driver = "MySQL ODBC 8.0 ANSI Driver",
+                      
+                      Server = "127.0.0.1",
+                      
+                      UID = "root",
+                      
+                      PWD = "Amanda31/",
+                      
+                      Port = 3306,
+                      Database = "sakila") 
+
+
+```
+# Insight
+Analisis hubungan biaya rental film terhadap jumlah rental pada database Sakila menggunakan uji korelasi Pearson.
+
+Analisis dilakukan untuk mengetahui hubungan antara biaya rental film dengan jumlah rental pada database Sakila. Biaya rental diduga memengaruhi minat pelanggan dalam melakukan penyewaan film.
+
+# Mengambil Data dari Database Sakila
+```{r}
+data <- dbGetQuery(con2, "SELECT 
+    f.rental_rate AS Rental_Rate,
+    COUNT(r.rental_id) AS Total_Rental
+
+FROM film f
+
+JOIN inventory i
+    ON f.film_id = i.film_id
+
+JOIN rental r
+    ON i.inventory_id = r.inventory_id
+
+GROUP BY f.film_id, f.rental_rate
+
+")
+
+data
+```
+#  Eksplorasi Data
+```{r}
+head(data)
+
+str(data)
+
+summary(data)
+```
+# Visualisasi Data
+Boxplot Hubungan Rental Rate dan Total Rental
+```{r}
+library(ggplot2)
+
+ggplot(data,
+       aes(x = as.factor(Rental_Rate),
+           y = Total_Rental,
+           fill = as.factor(Rental_Rate))) +
+
+  geom_boxplot() +
+
+  labs(
+    title = "Distribusi Jumlah Rental Berdasarkan Biaya Rental",
+    x = "Biaya Rental",
+    y = "Jumlah Rental"
+  )
+```
+# Hipotesis Uji Korelasi Pearson
+
+$$
+H_0 : \rho = 0
+$$
+
+$$
+H_1 : \rho \neq 0
+$$
+# Uji Korelasi Pearson
+```{R}
+data$Total_Rental <- as.numeric(data$Total_Rental)
+
+cor.test(data$Rental_Rate,
+         data$Total_Rental,
+         method = "pearson")
+```
+
+# Persamaan Korelasi Pearson
+
+$$
+r = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}
+{\sqrt{\sum (x_i - \bar{x})^2 \sum (y_i - \bar{y})^2}}
+$$
+
+# Interpretasi
+
+Berdasarkan hasil visualisasi scatter plot terlihat hubungan antara biaya rental film dengan jumlah rental film pada database Sakila.
+
+Hasil uji korelasi Pearson menunjukkan nilai korelasi dan p-value yang digunakan untuk mengetahui signifikansi hubungan antara kedua variabel.
+
+Jika nilai p-value kurang dari 0,05 maka dapat disimpulkan bahwa terdapat hubungan signifikan antara biaya rental dan jumlah rental film.
